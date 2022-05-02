@@ -1,0 +1,67 @@
+version: 2.1
+orbs:
+  build-tools: circleci/build-tools@3.0.0  
+executors:
+  machine-executor:
+    machine:
+      image: ubuntu-2004:202101-01
+
+jobs:
+  sanity-dev:
+    executor: machine-executor
+    working_directory: ~/repo
+    parallelism: 1 
+    steps:
+      - cache-repo
+      - dependency-cache
+      - sanity
+      - run:
+          name: Create artifacts directory
+          when: always
+          command: mkdir -p /tmp/artifacts/
+      - run:
+          name: Copy Artifacts to CircleCI
+          when: always
+          command: cp -r mochawesome-report /tmp/artifacts   
+      - store_artifacts:
+          path: /tmp/artifacts/
+      - store_test_results:
+           path: /tmp/artifacts/
+      - notify-google-chat:
+           notify_success: true
+  functional-dev:
+    executor: machine-executor
+    working_directory: ~/repo
+    parallelism: 1
+    steps:
+      - cache-repo
+      - dependency-cache
+      - functional
+      - run:
+          name: Create artifacts directory
+          when: always
+          command: mkdir -p /tmp/artifacts/
+      - run:
+          name: Copy Artifacts to CircleCI
+          when: always
+          command: cp -r mochawesome-report /tmp/artifacts  
+      - store_artifacts:
+          path: /tmp/artifacts/
+      - store_test_results:
+           path: /tmp/artifacts/
+      - notify-google-chat:
+           notify_success: true 
+
+workflows:
+  sanity-and-functional:
+    jobs:
+      - sanity-dev:
+          filters:
+              branches:
+                only:
+                  - master 
+      - hold-functional-dev:
+          type: approval      
+      - functional-dev:
+          requires:
+            - hold-functional-dev

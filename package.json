@@ -1,0 +1,30 @@
+{
+  "name": "simple-mocha-tests",
+  "version": "1.0.0",
+  "description": "This repository is created to demonstrate importance of orbs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "functional": "./node_modules/grunt/bin/grunt functional",
+    "sanity": "./node_modules/grunt/bin/grunt sanity"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kowcikr/simple-mocha-tests.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kowcikr/simple-mocha-tests/issues"
+  },
+  "homepage": "https://github.com/kowcikr/simple-mocha-tests#readme",
+  "dependencies": {
+    "chai": "^4.3.6",
+    "grunt": "^1.4.1",
+    "grunt-contrib-jshint": "^3.2.0",
+    "grunt-contrib-watch": "^1.1.0",
+    "grunt-mocha-test": "^0.13.3",
+    "mocha": "^9.2.2",
+    "mochawesome": "^7.1.3"
+  }
+}
