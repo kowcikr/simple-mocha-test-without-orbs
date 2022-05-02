@@ -6,6 +6,83 @@ executors:
     machine:
       image: ubuntu-2004:202101-01
 
+commands:
+
+  cache-repo:
+    description: 'Git repository cache'
+    steps:
+      - restore_cache:
+          keys:
+            - source-v1-{{ .Branch }}-{{ .Revision }}
+      - checkout:
+          path: ~/repo
+      - save_cache:
+          key: source-v1-{{ .Branch }}-{{ .Revision }}
+          paths:
+            - '.git'
+
+  dependency-cache:
+    description: 'Adding node modules cache'
+    parameters:
+      linux_env:
+        default: false
+        type: boolean
+    steps:
+      - restore_cache:
+          keys:
+            - node-v1-{{ checksum "./package.json" }}
+      - run:
+          name: Install Dependency
+          working_directory: ~/repo
+          command: |
+            npm install
+      - save_cache:
+          key: node-v1-{{ checksum "./package.json" }}
+          paths:
+            - ./node_modules
+
+  sanity:
+    description: 'Running sanity'
+    steps:
+      - run:
+          name: Run Sanity Tests
+          command: |
+            npm run sanity
+  
+  functional:
+    description: 'Running functional'
+    steps:
+      - run:
+          name: Run Functional Tests
+          command: |
+           npm run functional
+  
+  notify-google-chat:
+    description: "Notify google chat on job status"
+    parameters:
+      notify_success:
+        default: false
+        type: boolean
+    steps:
+      - run:
+          name: "Set GIT_COMMIT_MESSAGE"
+          when: always
+          command: echo 'export GIT_COMMIT_MESSAGE="$(git log --format=%B -n 1 $CIRCLE_SHA1)"' >> $BASH_ENV
+      - run:
+          name: Chat Notification Fail
+          when: on_fail
+          command: >
+            curl --header "Content-Type: application/json"
+            --request POST
+            --data "{\"cards\":[{\"header\":{\"title\": \"${CIRCLE_PROJECT_REPONAME}\",\"subtitle\": \"Oops. ${CIRCLE_JOB} failed for ${CIRCLE_PROJECT_REPONAME}.\",\"imageUrl\":\"https://png.pngtree.com/svg/20170406/icon_failed__1325447.png\",\"imageStyle\":\"IMAGE\"},\"sections\":[{\"widgets\":[{\"keyValue\":{\"topLabel\":\"Commit Message\",\"content\":\"${GIT_COMMIT_MESSAGE}\",\"contentMultiline\":\"true\",\"icon\":\"DESCRIPTION\",\"button\":{\"textButton\":{\"text\":\"Visit CircleCI\",\"onClick\":{\"openLink\":{\"url\":\"${CIRCLE_BUILD_URL}/\"}}}}}}]}]}]}"
+            $CHAT_WEBHOOK_URL
+      - run:
+          name: Chat Notification Success
+          when: on_success
+          command: >
+            if [ << parameters.notify_success >> == true ]; then
+              curl --header "Content-Type: application/json" --request POST --data "{\"cards\":[{\"header\":{\"title\":\"${CIRCLE_PROJECT_REPONAME}\",\"subtitle\":\"${CIRCLE_JOB} successful for ${CIRCLE_PROJECT_REPONAME}.\",\"imageUrl\":\"https://png.pngtree.com/svg/20170510/success_404253.png\",\"imageStyle\":\"IMAGE\"},\"sections\":[{\"widgets\":[{\"keyValue\":{\"topLabel\":\"Commit Message\",\"content\":\"${GIT_COMMIT_MESSAGE}\",\"contentMultiline\":\"true\",\"icon\":\"DESCRIPTION\",\"button\":{\"textButton\":{\"text\":\"Visit CircleCI\",\"onClick\":{\"openLink\":{\"url\":\"${CIRCLE_BUILD_URL}/\"}}}}}}]}]}]}" $CHAT_WEBHOOK_URL
+            fi
 jobs:
   sanity-dev:
     executor: machine-executor
@@ -64,4 +141,4 @@ workflows:
           type: approval      
       - functional-dev:
           requires:
-            - hold-functional-dev
+            - hold-functional-dev 
