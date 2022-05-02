@@ -132,11 +132,7 @@ jobs:
 workflows:
   sanity-and-functional:
     jobs:
-      - sanity-dev:
-          filters:
-              branches:
-                only:
-                  - master 
+      - sanity-dev
       - hold-functional-dev:
           type: approval      
       - functional-dev:
